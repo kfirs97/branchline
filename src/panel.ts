@@ -5,6 +5,7 @@ import { GraphLayout } from './graph';
 import { FromWebview, Row, ToWebview, ViewState, WORKING_TREE } from './protocol';
 import { runCommitAction, runRefAction } from './actions';
 import { revisionUri } from './content';
+import { License } from './license';
 
 export class GraphPanel {
   static current: GraphPanel | undefined;
@@ -16,30 +17,45 @@ export class GraphPanel {
   private hasMore = false;
   private allRefs = true;
   private search = '';
+  private path: string | null = null;
   private loadSeq = 0;
   private readonly disposables: vscode.Disposable[] = [];
 
-  static show(context: vscode.ExtensionContext, repos: () => Promise<string[]>): void {
+  static show(context: vscode.ExtensionContext, repos: () => Promise<string[]>, license: License): GraphPanel {
     if (GraphPanel.current) {
       GraphPanel.current.panel.reveal();
-      return;
+      return GraphPanel.current;
     }
     const panel = vscode.window.createWebviewPanel('branchline.graph', 'Git Graph', vscode.ViewColumn.Active, {
       enableScripts: true,
       retainContextWhenHidden: true,
       localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'dist')],
     });
-    GraphPanel.current = new GraphPanel(panel, context, repos);
+    GraphPanel.current = new GraphPanel(panel, context, repos, license);
+    return GraphPanel.current;
   }
 
   private constructor(
     private readonly panel: vscode.WebviewPanel,
     private readonly context: vscode.ExtensionContext,
     private readonly repos: () => Promise<string[]>,
+    private readonly license: License,
   ) {
     panel.webview.html = this.html();
     panel.onDidDispose(() => this.dispose(), null, this.disposables);
+    license.onDidChange(() => void this.load(true), null, this.disposables);
     panel.webview.onDidReceiveMessage((m: FromWebview) => this.onMessage(m).catch(e => this.showError(e)), null, this.disposables);
+  }
+
+  /** Shows only the history of `file` (an absolute path inside one of the repos). */
+  async showFileHistory(file: string): Promise<void> {
+    const repos = await this.repos();
+    const repo = repos.filter(r => file === r || file.startsWith(r + '/') || file.startsWith(r + '\\')).sort((a, b) => b.length - a.length)[0];
+    if (!repo) return void vscode.window.showWarningMessage('This file is not inside a git repository in the workspace.');
+    this.useRepo(repo);
+    this.path = file.slice(repo.length + 1).split('\\').join('/');
+    this.search = '';
+    await this.load(true, true);
   }
 
   /** Reload the graph, keeping at least as many commits as are currently loaded. */
@@ -61,7 +77,7 @@ export class GraphPanel {
       case 'ready': {
         const repos = await this.repos();
         const last = this.context.workspaceState.get<string>('branchline.repo');
-        this.useRepo(repos.includes(last ?? '') ? last! : repos[0] ?? null);
+        if (!this.git) this.useRepo(repos.includes(last ?? '') ? last! : repos[0] ?? null);
         return this.load(true);
       }
       case 'selectRepo':
@@ -91,7 +107,20 @@ export class GraphPanel {
         return;
       }
       case 'openDiff':
-        return this.openDiff(m.hash, m.file);
+        return this.openDiff(m.hash, m.file, m.base);
+      case 'compare': {
+        if (!this.git || !(await this.license.require('Comparing commits'))) return;
+        // Order the pair so the diff reads older → newer.
+        const [from, to] = (await this.isAncestor(m.to, m.from)) ? [m.to, m.from] : [m.from, m.to];
+        this.post({ type: 'comparison', comparison: { from, to, files: await this.git.changes(from, to === WORKING_TREE ? null : to) } });
+        return;
+      }
+      case 'clearPath':
+        this.path = null;
+        return this.load(true, true);
+      case 'getPro':
+        if (!this.license.isPro) await this.license.require('Branchline Pro');
+        return;
       case 'openFile':
         if (this.git) await vscode.window.showTextDocument(vscode.Uri.joinPath(vscode.Uri.file(this.git.cwd), m.path));
         return;
@@ -104,7 +133,19 @@ export class GraphPanel {
     }
   }
 
+  private async isAncestor(a: string, b: string): Promise<boolean> {
+    if (a === WORKING_TREE) return false;
+    if (b === WORKING_TREE) return true;
+    try {
+      await this.git!.run(['merge-base', '--is-ancestor', a, b]);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   private useRepo(repo: string | null): void {
+    if (repo !== this.git?.cwd) this.path = null;
     this.git = repo ? new Git(repo, vscode.workspace.getConfiguration('git').get<string>('path') || 'git') : null;
     if (repo) void this.context.workspaceState.update('branchline.repo', repo);
     this.panel.title = repo ? `Git Graph: ${repo.split(/[\\/]/).pop()}` : 'Git Graph';
@@ -125,7 +166,7 @@ export class GraphPanel {
     const skip = reset ? 0 : this.loaded;
     const [state, commits] = await Promise.all([
       git.state(),
-      git.log({ skip, count: count + 1, allRefs: this.allRefs, search: this.search || undefined }),
+      git.log({ skip, count: count + 1, allRefs: this.allRefs, search: this.search || undefined, path: this.path ?? undefined }),
     ]);
     if (seq !== this.loadSeq) return; // a newer load superseded this one
 
@@ -145,7 +186,7 @@ export class GraphPanel {
     }
 
     const rows: Row[] = [];
-    if (reset && state.dirty > 0 && state.head && !this.search) {
+    if (reset && state.dirty > 0 && state.head && !this.search && !this.path) {
       rows.push({
         hash: WORKING_TREE, parents: [state.head], author: '', email: '', date: Date.now() / 1000,
         subject: `Uncommitted changes (${state.dirty})`, refs: [],
@@ -170,14 +211,25 @@ export class GraphPanel {
       head: this.repoState?.head ?? null,
       allRefs: this.allRefs,
       search: this.search,
+      path: this.path,
+      pro: this.license.isPro,
       dateFormat: vscode.workspace.getConfiguration('branchline').get('dateFormat', 'relative'),
     };
   }
 
-  private async openDiff(hash: string, file: import('./git').FileChange): Promise<void> {
+  private async openDiff(hash: string, file: import('./git').FileChange, base?: string): Promise<void> {
     if (!this.git) return;
     const repo = this.git.cwd;
     const name = file.path.split('/').pop();
+    if (base !== undefined) {
+      const left = file.status === 'A' ? revisionUri(repo, '', file.path) : revisionUri(repo, base, file.oldPath ?? file.path);
+      const right = file.status === 'D'
+        ? revisionUri(repo, '', file.path)
+        : hash === WORKING_TREE ? vscode.Uri.joinPath(vscode.Uri.file(repo), file.path) : revisionUri(repo, hash, file.path);
+      const label = (h: string) => (h === WORKING_TREE ? 'Working Tree' : h.slice(0, 7));
+      await vscode.commands.executeCommand('vscode.diff', left, right, `${name} (${label(base)} ↔ ${label(hash)})`);
+      return;
+    }
     if (hash === WORKING_TREE) {
       const right = file.status === 'D' ? revisionUri(repo, '', file.path) : vscode.Uri.joinPath(vscode.Uri.file(repo), file.path);
       if (file.status === 'U' || file.status === 'A') return void vscode.window.showTextDocument(right);

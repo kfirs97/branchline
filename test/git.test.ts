@@ -52,6 +52,10 @@ test('log, refs, details and diffs on a branched history', async () => {
   const paged = await git.log({ skip: 1, count: 2, allRefs: true });
   assert.deepEqual(paged.map(c => c.hash), log.slice(1, 3).map(c => c.hash));
 
+  const history = await git.log({ skip: 0, count: 50, allRefs: true, path: 'a.txt' });
+  assert.deepEqual(history.map(c => c.subject), ['second', 'first'], 'only commits touching the path');
+  assert.deepEqual(history[0].parents, [a], 'parents are rewritten to the previous commit touching the path');
+
   const found = await git.log({ skip: 0, count: 50, allRefs: true, search: 'FEATURE WORK' });
   assert.deepEqual(found.map(c => c.hash), [f]);
 

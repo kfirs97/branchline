@@ -1,4 +1,4 @@
-import type { FromWebview, Row, ToWebview, ViewState, CommitAction, RefAction } from '../src/protocol';
+import type { FromWebview, Row, ToWebview, ViewState, CommitAction, RefAction, Comparison } from '../src/protocol';
 import type { CommitDetails, FileChange, Ref } from '../src/git';
 
 declare function acquireVsCodeApi(): { postMessage(msg: FromWebview): void };
@@ -15,6 +15,7 @@ let state: ViewState | null = null;
 let hasMore = false;
 let loadingMore = false;
 let expanded: string | null = null;
+let comparing: string | null = null;
 let graphLanes = 1;
 
 const app = document.getElementById('app')!;
@@ -27,10 +28,12 @@ app.innerHTML = `
     <input id="search" type="search" placeholder="Search commit messages" spellcheck="false">
     <span class="spacer"></span>
     <span id="head" class="head"></span>
+    <button id="pro" class="pro" title="Branchline Pro: compare commits, file history" hidden>★ Pro</button>
     <button id="fetch" title="Fetch from all remotes">Fetch</button>
     <button id="refresh" title="Refresh">Refresh</button>
   </header>
   <div id="error" class="error" hidden></div>
+  <div id="pathbar" class="pathbar" hidden><span id="pathlabel"></span><button id="clearPath">Show all history</button></div>
   <main id="scroller">
     <table id="graph">
       <thead><tr><th class="c-graph">Graph</th><th>Description</th><th class="c-date">Date</th><th class="c-author">Author</th><th class="c-hash">Commit</th></tr></thead>
@@ -146,6 +149,9 @@ function renderToolbar(): void {
     .join('');
   allRefs.checked = state.allRefs;
   if (document.activeElement !== search) search.value = state.search;
+  $('pro').hidden = state.pro;
+  $('pathbar').hidden = !state.path;
+  $('pathlabel').textContent = state.path ? `History of ${state.path}` : '';
   $('head').textContent = state.branch ? `⎇ ${state.branch}` : state.head ? `detached @ ${state.head.slice(0, 7)}` : '';
 }
 
@@ -159,34 +165,71 @@ function renderDetails(hash: string, d: CommitDetails | { hash: string; files: F
   document.querySelector('tr.details')?.remove();
   const tr = tbody.querySelector<HTMLTableRowElement>(`tr.commit[data-i="${rows.findIndex(r => r.hash === hash)}"]`);
   if (!tr || expanded !== hash) return;
-  const files = d.files
-    .map((f, k) => `<li class="file" data-k="${k}" title="${esc(statusLabel(f.status))}: ${esc(f.oldPath ? `${f.oldPath} → ${f.path}` : f.path)}">
-        <span class="fs s-${f.status}">${f.status}</span>
-        <span class="fp">${f.oldPath ? `${esc(f.oldPath)} → ` : ''}${esc(f.path)}</span>
-        ${f.additions !== undefined ? `<span class="add">+${f.additions}</span><span class="del">−${f.deletions}</span>` : ''}
-      </li>`)
-    .join('');
+  const files = fileList(d.files);
   const meta = 'author' in d
-    ? `<div class="meta">
+    ? `<div>
         <div><b>Commit</b> <code class="copy" data-copy="${d.hash}">${d.hash}</code></div>
         <div><b>Parents</b> ${d.parents.map(p => `<code class="jump" data-hash="${p}">${p.slice(0, 7)}</code>`).join(' ') || '—'}</div>
         <div><b>Author</b> ${esc(d.author)} &lt;${esc(d.email)}&gt; · ${esc(new Date(d.date * 1000).toLocaleString())}</div>
         ${d.committer !== d.author ? `<div><b>Committer</b> ${esc(d.committer)} &lt;${esc(d.committerEmail)}&gt;</div>` : ''}
         <pre class="message">${esc(d.subject)}${d.body ? `\n\n${esc(d.body)}` : ''}</pre>
       </div>`
-    : `<div class="meta"><b>Uncommitted changes</b></div>`;
+    : `<div><b>Uncommitted changes</b></div>`;
   const detailsRow = document.createElement('tr');
   detailsRow.className = 'details';
-  detailsRow.innerHTML = `<td colspan="5"><div class="panel">${meta}<ul class="files">${files || '<li class="empty">No file changes</li>'}</ul></div></td>`;
+  const tip = `<div class="tip">Tip: ${navigator.platform.startsWith('Mac') ? '⌘' : 'Ctrl'}-click another commit to compare</div>`;
+  detailsRow.innerHTML = `<td colspan="5"><div class="panel"><div class="meta">${meta}${tip}</div><ul class="files">${files || '<li class="empty">No file changes</li>'}</ul></div></td>`;
   detailsRow.querySelectorAll<HTMLElement>('.file').forEach(li =>
     li.addEventListener('click', () => send({ type: 'openDiff', hash, file: d.files[Number(li.dataset.k)] })),
   );
   tr.after(detailsRow);
 }
 
+function fileList(files: FileChange[]): string {
+  return files
+    .map((f, k) => `<li class="file" data-k="${k}" title="${esc(statusLabel(f.status))}: ${esc(f.oldPath ? `${f.oldPath} → ${f.path}` : f.path)}">
+        <span class="fs s-${f.status}">${f.status}</span>
+        <span class="fp">${f.oldPath ? `${esc(f.oldPath)} → ` : ''}${esc(f.path)}</span>
+        ${f.additions !== undefined ? `<span class="add">+${f.additions}</span><span class="del">−${f.deletions}</span>` : ''}
+      </li>`)
+    .join('');
+}
+
+const shortOf = (h: string) => (h === WORKING_TREE ? 'working tree' : h.slice(0, 7));
+
+function renderComparison(c: Comparison): void {
+  if (!expanded || !comparing) return;
+  document.querySelector('tr.details')?.remove();
+  const anchor = tbody.querySelector<HTMLTableRowElement>(`tr.commit[data-i="${rows.findIndex(r => r.hash === comparing)}"]`);
+  if (!anchor) return;
+  const tr = document.createElement('tr');
+  tr.className = 'details';
+  tr.innerHTML = `<td colspan="5"><div class="panel">
+      <div class="meta"><div><b>Comparing</b> <code>${shortOf(c.from)}</code> ↔ <code>${shortOf(c.to)}</code></div>
+      <div>${c.files.length} file${c.files.length === 1 ? '' : 's'} changed</div>
+      <div class="tip">Click a file to open its diff. Press Esc to exit compare.</div></div>
+      <ul class="files">${fileList(c.files) || '<li class="empty">No differences</li>'}</ul></div></td>`;
+  tr.querySelectorAll<HTMLElement>('.file').forEach(li =>
+    li.addEventListener('click', () => send({ type: 'openDiff', hash: c.to, base: c.from, file: c.files[Number(li.dataset.k)] })),
+  );
+  anchor.after(tr);
+}
+
+function startCompare(hash: string): void {
+  if (!expanded || hash === expanded) return;
+  // Without Pro the host only shows the upgrade prompt; stay in normal mode.
+  if (!state?.pro) return send({ type: 'compare', from: expanded, to: hash });
+  comparing = hash;
+  tbody.querySelector('tr.comparing')?.classList.remove('comparing');
+  tbody.querySelector(`tr.commit[data-i="${rows.findIndex(r => r.hash === hash)}"]`)?.classList.add('comparing');
+  send({ type: 'compare', from: expanded, to: hash });
+}
+
 function toggleDetails(hash: string): void {
   document.querySelector('tr.details')?.remove();
   tbody.querySelector('tr.selected')?.classList.remove('selected');
+  tbody.querySelector('tr.comparing')?.classList.remove('comparing');
+  comparing = null;
   if (expanded === hash) {
     expanded = null;
     return;
@@ -222,7 +265,11 @@ const closeMenu = () => (menu.hidden = true);
 
 function commitMenu(row: Row): MenuItem[] {
   const act = (action: CommitAction) => () => send({ type: 'commitAction', action, hash: row.hash, subject: row.subject });
+  const compare: MenuItem[] = expanded && expanded !== row.hash
+    ? [{ label: `Compare with ${shortOf(expanded)}${state?.pro ? '' : ' (Pro)'}`, run: () => startCompare(row.hash) }, 'sep']
+    : [];
   return [
+    ...compare,
     { label: 'Create Branch…', run: act('createBranch') },
     { label: 'Create Tag…', run: act('createTag') },
     { label: 'Checkout (detached)', run: act('checkout') },
@@ -275,7 +322,9 @@ tbody.addEventListener('click', ev => {
     return;
   }
   const row = rowOf(target);
-  if (row) toggleDetails(row.hash);
+  if (!row) return;
+  if ((ev.metaKey || ev.ctrlKey) && expanded && row.hash !== expanded) startCompare(row.hash);
+  else toggleDetails(row.hash);
 });
 
 tbody.addEventListener('contextmenu', ev => {
@@ -298,7 +347,11 @@ window.addEventListener('blur', closeMenu);
 document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') {
     if (!menu.hidden) closeMenu();
-    else if (expanded) toggleDetails(expanded);
+    else if (comparing && expanded) {
+      const h = expanded;
+      expanded = null;
+      toggleDetails(h);
+    } else if (expanded) toggleDetails(expanded);
   }
   if ((ev.metaKey || ev.ctrlKey) && ev.key === 'f') {
     ev.preventDefault();
@@ -317,6 +370,8 @@ allRefs.addEventListener('change', sendFilter);
 repoSelect.addEventListener('change', () => send({ type: 'selectRepo', repo: repoSelect.value }));
 $('refresh').addEventListener('click', () => send({ type: 'refresh' }));
 $('fetch').addEventListener('click', () => send({ type: 'fetch' }));
+$('pro').addEventListener('click', () => send({ type: 'getPro' }));
+$('clearPath').addEventListener('click', () => send({ type: 'clearPath' }));
 
 const scroller = $('scroller');
 scroller.addEventListener('scroll', maybeLoadMore);
@@ -349,7 +404,10 @@ window.addEventListener('message', (ev: MessageEvent<ToWebview>) => {
       maybeLoadMore(); // fill the viewport on tall screens
       break;
     case 'details':
-      renderDetails(m.hash, m.details);
+      if (!comparing) renderDetails(m.hash, m.details);
+      break;
+    case 'comparison':
+      renderComparison(m.comparison);
       break;
     case 'error': {
       loadingMore = false;

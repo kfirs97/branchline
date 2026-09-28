@@ -22,12 +22,23 @@ export interface ViewState {
   head: string | null;
   allRefs: boolean;
   search: string;
+  /** Repo-relative path when showing a file's history. */
+  path: string | null;
+  pro: boolean;
   dateFormat: 'relative' | 'absolute';
+}
+
+/** Files changed between two commits, shown when comparing (`from` is the older side). */
+export interface Comparison {
+  from: string;
+  to: string;
+  files: FileChange[];
 }
 
 export type ToWebview =
   | { type: 'rows'; reset: boolean; state: ViewState; rows: Row[]; hasMore: boolean }
   | { type: 'details'; hash: string; details: CommitDetails | { hash: string; files: FileChange[] } }
+  | { type: 'comparison'; comparison: Comparison }
   | { type: 'error'; message: string }
   | { type: 'loading' };
 
@@ -46,7 +57,10 @@ export type FromWebview =
   | { type: 'selectRepo'; repo: string }
   | { type: 'setFilter'; allRefs: boolean; search: string }
   | { type: 'details'; hash: string }
-  | { type: 'openDiff'; hash: string; file: FileChange }
+  | { type: 'openDiff'; hash: string; file: FileChange; base?: string }
+  | { type: 'compare'; from: string; to: string }
+  | { type: 'clearPath' }
+  | { type: 'getPro' }
   | { type: 'openFile'; path: string }
   | { type: 'commitAction'; action: CommitAction; hash: string; subject: string }
   | { type: 'refAction'; action: RefAction; ref: Ref };

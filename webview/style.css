@@ -1,3 +1,5 @@
+[hidden] { display: none !important; }
+
 :root {
   --graph-width: 24px;
   --row: 26px;
@@ -178,3 +180,17 @@ tr.details td { padding: 0; }
 .menu .item:hover { color: var(--vscode-menu-selectionForeground); background: var(--vscode-menu-selectionBackground); }
 .menu .item.danger { color: var(--vscode-errorForeground); }
 .menu hr { border: none; border-top: 1px solid var(--vscode-menu-separatorBackground, rgba(128, 128, 128, 0.35)); margin: 4px 0; }
+
+.pathbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 10px;
+  background: var(--vscode-editorInfo-background, rgba(63, 167, 245, 0.12));
+  border-bottom: 1px solid var(--vscode-panel-border, transparent);
+}
+.pathbar span { flex: 1; font-family: var(--vscode-editor-font-family); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.pro { color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+button.pro:hover { background: var(--vscode-button-hoverBackground); }
+tr.commit.comparing { background: var(--vscode-list-inactiveSelectionBackground); outline: 1px dashed var(--vscode-focusBorder); outline-offset: -1px; }
+.tip { margin-top: 8px; opacity: 0.6; font-size: 0.9em; }

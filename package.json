@@ -40,6 +40,27 @@
         "command": "branchline.refresh",
         "title": "Refresh Git Graph",
         "category": "Branchline"
+      },
+      {
+        "command": "branchline.fileHistory",
+        "title": "Show File History in Git Graph",
+        "category": "Branchline",
+        "icon": "$(history)"
+      },
+      {
+        "command": "branchline.enterLicense",
+        "title": "Enter Pro License Key",
+        "category": "Branchline"
+      },
+      {
+        "command": "branchline.removeLicense",
+        "title": "Remove Pro License Key",
+        "category": "Branchline"
+      },
+      {
+        "command": "branchline.buyPro",
+        "title": "Get Branchline Pro",
+        "category": "Branchline"
       }
     ],
     "menus": {
@@ -48,6 +69,27 @@
           "command": "branchline.show",
           "when": "scmProvider == git",
           "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "branchline.fileHistory",
+          "when": "!explorerResourceIsFolder",
+          "group": "branchline"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "branchline.fileHistory",
+          "when": "resourceScheme == file",
+          "group": "branchline"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "branchline.fileHistory",
+          "when": "resourceScheme == file",
+          "group": "branchline"
         }
       ]
     },

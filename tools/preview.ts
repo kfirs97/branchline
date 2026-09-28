@@ -1,6 +1,6 @@
 /**
  * Renders the webview outside VS Code for visual checks:
- *   node tools/preview.js <repo> <out.html> [light|dark] [expandIndex]
+ *   node tools/preview.js <repo> <out.html> [light|dark] [expandIndex] [compareIndex] [path]
  * Uses real git data + layout, a mocked VS Code API, and a VS Code-like theme.
  */
 import { writeFileSync, readFileSync } from 'node:fs';
@@ -9,7 +9,7 @@ import { Git, Ref } from '../src/git';
 import { GraphLayout } from '../src/graph';
 import type { Row } from '../src/protocol';
 
-const [repo, out, theme = 'dark', expand] = process.argv.slice(2);
+const [repo, out, theme = 'dark', expand, compare, path] = process.argv.slice(2);
 
 const THEMES: Record<string, Record<string, string>> = {
   dark: {
@@ -32,7 +32,7 @@ const THEMES: Record<string, Record<string, string>> = {
 
 (async () => {
   const git = new Git(resolve(repo));
-  const [state, commits] = await Promise.all([git.state(), git.log({ skip: 0, count: 120, allRefs: true })]);
+  const [state, commits] = await Promise.all([git.state(), git.log({ skip: 0, count: 120, allRefs: true, path: path || undefined })]);
   const byHash = new Map<string, Ref[]>();
   for (const r of state.refs) byHash.set(r.hash, [...(byHash.get(r.hash) ?? []), r]);
   const layout = new GraphLayout();
@@ -41,13 +41,15 @@ const THEMES: Record<string, Record<string, string>> = {
     rows.push({ hash: '*', parents: [state.head], author: '', email: '', date: Date.now() / 1000, subject: `Uncommitted changes (${state.dirty})`, refs: [], layout: layout.add({ hash: '*', parents: [state.head] }) });
   }
   for (const c of commits) rows.push({ ...c, refs: byHash.get(c.hash) ?? [], layout: layout.add(c) });
-  const expandHash = expand !== undefined ? rows[Number(expand)].hash : null;
+  const expandHash = expand ? rows[Number(expand)].hash : null;
   const details = expandHash ? await git.details(expandHash) : null;
+  const compareHash = compare ? rows[Number(compare)].hash : null;
+  const comparison = compareHash && expandHash ? { from: compareHash, to: expandHash, files: await git.changes(compareHash, expandHash) } : null;
 
   const vars = Object.entries(THEMES[theme]).map(([k, v]) => `--vscode-${k}:${v};`).join('');
   const dist = resolve(__dirname, '../dist');
   const msg = { type: 'rows', reset: true, rows, hasMore: false,
-    state: { repos: [git.cwd], repo: git.cwd, branch: state.branch, head: state.head, allRefs: true, search: '', dateFormat: 'relative' } };
+    state: { repos: [git.cwd], repo: git.cwd, branch: state.branch, head: state.head, allRefs: true, search: '', path: path || null, pro: !!compare, dateFormat: 'relative' } };
   writeFileSync(out, `<!DOCTYPE html><html><head><meta charset="utf-8">
 <style>:root{${vars}--vscode-font-family:-apple-system,BlinkMacSystemFont,sans-serif;--vscode-font-size:13px;--vscode-editor-font-family:Menlo,monospace}</style>
 <style>${readFileSync(`${dist}/webview.css`, 'utf8')}</style></head><body><div id="app"></div>
@@ -56,8 +58,10 @@ const THEMES: Record<string, Record<string, string>> = {
     if (m.type === 'ready') setTimeout(() => {
       window.postMessage(${JSON.stringify(msg)}, '*');
       ${expandHash ? `setTimeout(() => document.querySelector('tr.commit[data-i="${expand}"]').click(), 50);` : ''}
+      ${compareHash ? `setTimeout(() => document.querySelector('tr.commit[data-i="${compare}"]').dispatchEvent(new MouseEvent('click', { bubbles: true, metaKey: true })), 120);` : ''}
     });
     if (m.type === 'details') window.postMessage(${JSON.stringify({ type: 'details', hash: expandHash, details })}, '*');
+    if (m.type === 'compare') window.postMessage(${JSON.stringify({ type: 'comparison', comparison })}, '*');
   }});
 </script>
 <script>${readFileSync(`${dist}/webview.js`, 'utf8')}</script></body></html>`);

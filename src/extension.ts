@@ -2,6 +2,8 @@ import * as vscode from 'vscode';
 import { GraphPanel } from './panel';
 import { RevisionContentProvider, SCHEME } from './content';
 import { Git } from './git';
+import { License } from './license';
+import { BUY_URL } from './licenseVerify';
 
 /** The subset of the built-in git extension's API (vscode.git, API v1) that we use. */
 interface BuiltinGitApi {
@@ -22,6 +24,8 @@ async function builtinGit(): Promise<BuiltinGitApi | undefined> {
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const api = await builtinGit();
+  const license = new License(context);
+  await license.init();
 
   const repos = async (): Promise<string[]> => {
     const found = new Set<string>(api?.repositories.map(r => r.rootUri.fsPath) ?? []);
@@ -61,7 +65,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     status,
     { dispose: () => clearTimeout(timer) },
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, new RevisionContentProvider()),
-    vscode.commands.registerCommand('branchline.show', () => GraphPanel.show(context, repos)),
+    vscode.commands.registerCommand('branchline.show', () => void GraphPanel.show(context, repos, license)),
+    vscode.commands.registerCommand('branchline.fileHistory', async (uri?: vscode.Uri) => {
+      const target = uri ?? vscode.window.activeTextEditor?.document.uri;
+      if (target?.scheme !== 'file') return void vscode.window.showWarningMessage('Open or select a file to see its history.');
+      if (!(await license.require('File history'))) return;
+      await GraphPanel.show(context, repos, license).showFileHistory(target.fsPath);
+    }),
+    vscode.commands.registerCommand('branchline.enterLicense', () => license.enterKey()),
+    vscode.commands.registerCommand('branchline.removeLicense', () => license.removeKey()),
+    vscode.commands.registerCommand('branchline.buyPro', () => vscode.env.openExternal(vscode.Uri.parse(BUY_URL))),
     vscode.commands.registerCommand('branchline.refresh', () => GraphPanel.current?.refresh()),
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('branchline.showStatusBarItem')) updateStatus();

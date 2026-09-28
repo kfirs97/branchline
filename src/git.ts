@@ -79,7 +79,8 @@ export class Git {
     }
   }
 
-  async log(opts: { skip: number; count: number; allRefs: boolean; search?: string }): Promise<Commit[]> {
+  /** With `path`, history is limited to commits touching it; `--parents` makes git rewrite parents so the graph stays connected. */
+  async log(opts: { skip: number; count: number; allRefs: boolean; search?: string; path?: string }): Promise<Commit[]> {
     const args = [
       'log',
       '--date-order',
@@ -88,8 +89,10 @@ export class Git {
       `-n${opts.count}`,
     ];
     if (opts.search) args.push('-i', '--fixed-strings', `--grep=${opts.search}`);
+    if (opts.path) args.push('--parents');
     args.push(...(opts.allRefs ? ['--branches', '--remotes', '--tags', 'HEAD'] : ['HEAD']));
     args.push('--');
+    if (opts.path) args.push(opts.path);
     let out: string;
     try {
       out = await this.run(args);
