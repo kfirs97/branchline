@@ -1,0 +1,92 @@
+{
+  "name": "branchline",
+  "displayName": "Branchline — Git Graph",
+  "description": "A fast, actively maintained Git Graph for VS Code: visualize branches and history, inspect commits, and run git actions right from the graph.",
+  "version": "0.1.0",
+  "publisher": "branchline",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "git graph",
+    "git history",
+    "git log",
+    "branches",
+    "commit graph",
+    "visualize",
+    "tree"
+  ],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.js",
+  "activationEvents": ["onStartupFinished"],
+  "contributes": {
+    "commands": [
+      {
+        "command": "branchline.show",
+        "title": "Show Git Graph",
+        "category": "Branchline",
+        "icon": "$(git-branch)"
+      },
+      {
+        "command": "branchline.refresh",
+        "title": "Refresh Git Graph",
+        "category": "Branchline"
+      }
+    ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "branchline.show",
+          "when": "scmProvider == git",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Branchline",
+      "properties": {
+        "branchline.pageSize": {
+          "type": "number",
+          "default": 300,
+          "minimum": 50,
+          "description": "Number of commits loaded at a time."
+        },
+        "branchline.showStatusBarItem": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a Git Graph button in the status bar."
+        },
+        "branchline.dateFormat": {
+          "type": "string",
+          "enum": [
+            "relative",
+            "absolute"
+          ],
+          "default": "relative",
+          "description": "How commit dates are shown."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "test": "node esbuild.mjs --tests && node --test dist-test/*.test.js",
+    "package": "node esbuild.mjs --production && vsce package --no-dependencies"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3"
+  }
+}
