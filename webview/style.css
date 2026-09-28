@@ -137,10 +137,23 @@ svg { display: block; overflow: visible; }
 .ref.stash, .ref.detached { background: rgba(118, 131, 144, 0.2); border-color: rgba(118, 131, 144, 0.5); }
 
 tr.details td { padding: 0; }
+.details-wrap { position: relative; }
+.details-wrap .bar { position: absolute; top: 0; bottom: 0; width: 2px; }
+.bar.b0 { background: var(--lane-0); }
+.bar.b1 { background: var(--lane-1); }
+.bar.b2 { background: var(--lane-2); }
+.bar.b3 { background: var(--lane-3); }
+.bar.b4 { background: var(--lane-4); }
+.bar.b5 { background: var(--lane-5); }
+.bar.b6 { background: var(--lane-6); }
+.bar.b7 { background: var(--lane-7); }
+.bar.b8 { background: var(--lane-8); }
+.bar.b9 { background: var(--lane-9); }
 .panel {
   display: flex;
   gap: 16px;
   padding: 10px 14px;
+  margin-left: var(--graph-width);
   background: var(--vscode-editorWidget-background, var(--vscode-sideBar-background));
   border-top: 1px solid var(--vscode-panel-border, transparent);
   border-bottom: 1px solid var(--vscode-panel-border, transparent);

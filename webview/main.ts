@@ -175,14 +175,12 @@ function renderDetails(hash: string, d: CommitDetails | { hash: string; files: F
         <pre class="message">${esc(d.subject)}${d.body ? `\n\n${esc(d.body)}` : ''}</pre>
       </div>`
     : `<div><b>Uncommitted changes</b></div>`;
-  const detailsRow = document.createElement('tr');
-  detailsRow.className = 'details';
   const tip = `<div class="tip">Tip: ${navigator.platform.startsWith('Mac') ? '⌘' : 'Ctrl'}-click another commit to compare</div>`;
-  detailsRow.innerHTML = `<td colspan="5"><div class="panel"><div class="meta">${meta}${tip}</div><ul class="files">${files || '<li class="empty">No file changes</li>'}</ul></div></td>`;
-  detailsRow.querySelectorAll<HTMLElement>('.file').forEach(li =>
+  const row = detailsRow(rows.find(r => r.hash === hash)!, `<div class="meta">${meta}${tip}</div><ul class="files">${files || '<li class="empty">No file changes</li>'}</ul>`);
+  row.querySelectorAll<HTMLElement>('.file').forEach(li =>
     li.addEventListener('click', () => send({ type: 'openDiff', hash, file: d.files[Number(li.dataset.k)] })),
   );
-  tr.after(detailsRow);
+  tr.after(row);
 }
 
 function fileList(files: FileChange[]): string {
@@ -195,6 +193,18 @@ function fileList(files: FileChange[]): string {
     .join('');
 }
 
+/** A details row below `anchor` whose graph lanes continue through it. */
+function detailsRow(anchor: Row, content: string): HTMLTableRowElement {
+  const lanes = anchor.layout.segments
+    .filter(sg => sg.half === 'bottom' && sg.to < MAX_LANES)
+    .map(sg => `<i class="bar b${sg.color % 10}" style="left:${4 + x(sg.to) - 1}px"></i>`)
+    .join('');
+  const tr = document.createElement('tr');
+  tr.className = 'details';
+  tr.innerHTML = `<td colspan="5"><div class="details-wrap">${lanes}<div class="panel">${content}</div></div></td>`;
+  return tr;
+}
+
 const shortOf = (h: string) => (h === WORKING_TREE ? 'working tree' : h.slice(0, 7));
 
 function renderComparison(c: Comparison): void {
@@ -202,13 +212,11 @@ function renderComparison(c: Comparison): void {
   document.querySelector('tr.details')?.remove();
   const anchor = tbody.querySelector<HTMLTableRowElement>(`tr.commit[data-i="${rows.findIndex(r => r.hash === comparing)}"]`);
   if (!anchor) return;
-  const tr = document.createElement('tr');
-  tr.className = 'details';
-  tr.innerHTML = `<td colspan="5"><div class="panel">
+  const tr = detailsRow(rows.find(r => r.hash === comparing)!, `
       <div class="meta"><div><b>Comparing</b> <code>${shortOf(c.from)}</code> ↔ <code>${shortOf(c.to)}</code></div>
       <div>${c.files.length} file${c.files.length === 1 ? '' : 's'} changed</div>
       <div class="tip">Click a file to open its diff. Press Esc to exit compare.</div></div>
-      <ul class="files">${fileList(c.files) || '<li class="empty">No differences</li>'}</ul></div></td>`;
+      <ul class="files">${fileList(c.files) || '<li class="empty">No differences</li>'}</ul>`);
   tr.querySelectorAll<HTMLElement>('.file').forEach(li =>
     li.addEventListener('click', () => send({ type: 'openDiff', hash: c.to, base: c.from, file: c.files[Number(li.dataset.k)] })),
   );

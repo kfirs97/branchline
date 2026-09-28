@@ -135,5 +135,17 @@
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "typescript": "^5.9.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kfirs97/branchline.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kfirs97/branchline/issues"
+  },
+  "homepage": "https://github.com/kfirs97/branchline#readme",
+  "galleryBanner": {
+    "color": "#141a24",
+    "theme": "dark"
   }
 }
