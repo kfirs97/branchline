@@ -19,6 +19,9 @@ export class GraphPanel {
   private search = '';
   private path: string | null = null;
   private loadSeq = 0;
+  /** Identity of the loaded refs/HEAD/working-tree state, to skip reloads when nothing relevant changed. */
+  private fingerprint = '';
+  private offeredSpeedup = false;
   private readonly disposables: vscode.Disposable[] = [];
 
   static show(context: vscode.ExtensionContext, repos: () => Promise<string[]>, license: License): GraphPanel {
@@ -58,8 +61,23 @@ export class GraphPanel {
     await this.load(true, true);
   }
 
-  /** Reload the graph, keeping at least as many commits as are currently loaded. */
-  async refresh(): Promise<void> {
+  /**
+   * Reload the graph, keeping at least as many commits as are currently loaded.
+   * Automatic refreshes (file saves, index changes) skip the reload when HEAD, refs and the
+   * uncommitted-changes row are unchanged.
+   */
+  async refresh(force = true): Promise<void> {
+    if (!force && this.git && this.fingerprint) {
+      const state = await this.git.state();
+      if (fingerprintOf(state) === this.fingerprint) {
+        if (state.dirty !== this.repoState?.dirty) {
+          this.repoState = state;
+    this.fingerprint = fingerprintOf(state);
+          this.post({ type: 'dirty', count: state.dirty });
+        }
+        return;
+      }
+    }
     await this.load(true);
   }
 
@@ -164,11 +182,13 @@ export class GraphPanel {
 
     const count = reset ? Math.max(pageSize, dropLoaded ? 0 : this.loaded) : pageSize;
     const skip = reset ? 0 : this.loaded;
+    const started = Date.now();
     const [state, commits] = await Promise.all([
       git.state(),
       git.log({ skip, count: count + 1, allRefs: this.allRefs, search: this.search || undefined, path: this.path ?? undefined }),
     ]);
     if (seq !== this.loadSeq) return; // a newer load superseded this one
+    if (reset && commits.length > count) void this.offerSpeedup(git, Date.now() - started);
 
     const hasMore = commits.length > count;
     if (hasMore) commits.pop();
@@ -201,6 +221,26 @@ export class GraphPanel {
     this.loaded += commits.length;
     this.hasMore = hasMore;
     this.post({ type: 'rows', reset, state: this.viewState(repos), rows, hasMore: this.hasMore });
+  }
+
+  /** Offers once per repo to build git's commit-graph cache when history loads slowly. */
+  private async offerSpeedup(git: Git, ms: number): Promise<void> {
+    const key = `branchline.speedupOffered:${git.cwd}`;
+    if (ms < 500 || this.offeredSpeedup || this.context.workspaceState.get(key) || (await git.hasCommitGraph())) return;
+    this.offeredSpeedup = true;
+    const pick = await vscode.window.showInformationMessage(
+      'This repository has a large history. Git Graph can load much faster if git builds its commit-graph cache (git commit-graph write).',
+      'Speed Up',
+      "Don't Ask Again",
+    );
+    if (pick === "Don't Ask Again") await this.context.workspaceState.update(key, true);
+    if (pick !== 'Speed Up') return;
+    await this.context.workspaceState.update(key, true);
+    await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: 'Building git commit-graph…' },
+      () => git.run(['commit-graph', 'write', '--reachable']),
+    );
+    await this.load(true);
   }
 
   private viewState(repos: string[]): ViewState {
@@ -268,4 +308,9 @@ export class GraphPanel {
     GraphPanel.current = undefined;
     while (this.disposables.length) this.disposables.pop()?.dispose();
   }
+}
+
+function fingerprintOf(state: RepoState): string {
+  const refs = state.refs.map(r => `${r.type}:${r.name}:${r.hash}`).sort().join(',');
+  return `${state.head}|${state.branch}|${state.dirty > 0}|${refs}`;
 }

@@ -79,6 +79,12 @@ test('log, refs, details and diffs on a branched history', async () => {
   assert.equal(await git.show(a, 'missing.txt'), '');
 });
 
+test('detects the commit-graph cache', async () => {
+  assert.equal(await git.hasCommitGraph(), false);
+  await git.run(['commit-graph', 'write', '--reachable']);
+  assert.equal(await git.hasCommitGraph(), true);
+});
+
 test('working tree changes include renames and untracked files', async () => {
   renameSync(join(dir, 'f.txt'), join(dir, 'g.txt'));
   await git.run(['add', '-A']);

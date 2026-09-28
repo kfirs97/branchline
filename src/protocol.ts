@@ -39,6 +39,7 @@ export type ToWebview =
   | { type: 'rows'; reset: boolean; state: ViewState; rows: Row[]; hasMore: boolean }
   | { type: 'details'; hash: string; details: CommitDetails | { hash: string; files: FileChange[] } }
   | { type: 'comparison'; comparison: Comparison }
+  | { type: 'dirty'; count: number }
   | { type: 'error'; message: string }
   | { type: 'loading' };
 

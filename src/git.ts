@@ -1,4 +1,6 @@
 import { execFile } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 const FIELD = '\x1f';
 const RECORD = '\x1e';
@@ -147,6 +149,12 @@ export class Git {
       for (const path of untracked.split('\0').filter(Boolean)) files.push({ status: 'U', path });
     }
     return files;
+  }
+
+  /** Whether git's commit-graph cache exists; without it, ordered logs of large repos are several times slower. */
+  async hasCommitGraph(): Promise<boolean> {
+    const out = await this.run(['rev-parse', '--git-path', 'objects/info/commit-graph', '--git-path', 'objects/info/commit-graphs']);
+    return out.trim().split('\n').some(p => existsSync(resolve(this.cwd, p)));
   }
 
   /** File contents at a revision, or empty when the path does not exist there. */

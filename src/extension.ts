@@ -41,7 +41,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   let timer: NodeJS.Timeout | undefined;
   const scheduleRefresh = () => {
     clearTimeout(timer);
-    timer = setTimeout(() => void GraphPanel.current?.refresh(), 400);
+    timer = setTimeout(() => void GraphPanel.current?.refresh(false), 400);
   };
 
   if (api) {

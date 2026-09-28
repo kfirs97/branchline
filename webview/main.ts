@@ -414,6 +414,15 @@ window.addEventListener('message', (ev: MessageEvent<ToWebview>) => {
     case 'details':
       if (!comparing) renderDetails(m.hash, m.details);
       break;
+    case 'dirty': {
+      const wt = rows.find(r => r.hash === WORKING_TREE);
+      if (wt) {
+        wt.subject = `Uncommitted changes (${m.count})`;
+        const el = tbody.querySelector(`tr.commit[data-i="${rows.indexOf(wt)}"] .subject`);
+        if (el) el.textContent = wt.subject;
+      }
+      break;
+    }
     case 'comparison':
       renderComparison(m.comparison);
       break;
