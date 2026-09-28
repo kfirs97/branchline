@@ -1,0 +1,41 @@
+Branchline License
+
+Copyright (c) 2026 kfirs97. All rights reserved.
+
+The source code of Branchline is made available so that you can read, audit
+and learn from it, and so that you can report issues and propose changes.
+
+Permission is granted, free of charge, to any person who obtains a copy of
+this software (the "Software") to:
+
+  1. use the Software, for personal or commercial purposes, as distributed
+     through the official channels (the Visual Studio Marketplace, Open VSX,
+     or the official GitHub repository); and
+  2. view, study, and modify the source code for their own private use, and
+     submit contributions to the official repository.
+
+The following are NOT permitted without prior written permission from the
+copyright holder:
+
+  a. publishing, distributing, sublicensing, or selling the Software or any
+     derivative work of it, in whole or in part, including through any
+     extension marketplace or package registry;
+  b. removing, disabling, or circumventing the license-key verification or
+     any feature gating of the Software, or distributing any tool, patch or
+     build that does so;
+  c. using the name "Branchline", its logo, or confusingly similar branding.
+
+Contributions submitted to the official repository are licensed to the
+copyright holder under the same terms as this license, and the copyright
+holder may use them in the Software under any terms.
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
