@@ -87,6 +87,9 @@ function graphSvg(row: Row): string {
   }
   const col = Math.min(row.layout.col, MAX_LANES - 1);
   const isHead = row.hash === state?.head;
+  if (row.stash) {
+    return `<svg width="${w}" height="${ROW}" viewBox="0 0 ${w} ${ROW}">${paths}<rect x="${x(col) - 4}" y="${mid - 4}" width="8" height="8" rx="1.5" class="node stash c${row.layout.color % 10}"/></svg>`;
+  }
   const cls = row.hash === WORKING_TREE ? 'node wt' : `node c${row.layout.color % 10}${isHead ? ' head' : ''}${row.parents.length > 1 ? ' merge' : ''}`;
   const r = isHead ? 5 : 4;
   return `<svg width="${w}" height="${ROW}" viewBox="0 0 ${w} ${ROW}">${paths}<circle cx="${x(col)}" cy="${mid}" r="${r}" class="${cls}"/></svg>`;
@@ -105,7 +108,7 @@ function rowHtml(row: Row, i: number): string {
   const refs = [...row.refs].sort((a, b) => order(a) - order(b)).map(refBadge).join('');
   return `<tr class="commit${wt ? ' wt' : ''}${row.hash === expanded ? ' selected' : ''}" data-i="${i}">
     <td class="c-graph">${graphSvg(row)}</td>
-    <td class="c-desc">${row.hash === state?.head && !state.branch ? '<span class="ref detached">HEAD</span>' : ''}${refs}<span class="subject">${esc(row.subject)}</span></td>
+    <td class="c-desc">${row.hash === state?.head && !state.branch ? '<span class="ref detached">HEAD</span>' : ''}${row.stash ? `<span class="ref stash">⚑ ${esc(row.stash)}</span>` : ''}${refs}<span class="subject">${esc(row.subject)}</span></td>
     <td class="c-date">${wt ? '' : esc(formatDate(row.date))}</td>
     <td class="c-author" title="${esc(row.email)}">${esc(row.author)}</td>
     <td class="c-hash">${wt ? '*' : row.hash.slice(0, 7)}</td>
@@ -272,7 +275,18 @@ function openMenu(ev: MouseEvent, items: MenuItem[]): void {
 const closeMenu = () => (menu.hidden = true);
 
 function commitMenu(row: Row): MenuItem[] {
-  const act = (action: CommitAction) => () => send({ type: 'commitAction', action, hash: row.hash, subject: row.subject });
+  const act = (action: CommitAction) => () => send({ type: 'commitAction', action, hash: row.hash, subject: row.subject, stash: row.stash });
+  if (row.stash) {
+    return [
+      { label: 'Apply Stash', run: act('stashApply') },
+      { label: 'Pop Stash', run: act('stashPop') },
+      { label: 'Create Branch from Stash…', run: act('stashBranch') },
+      'sep',
+      { label: 'Drop Stash…', run: act('stashDrop'), danger: true },
+      'sep',
+      { label: 'Copy Commit Hash', run: act('copyHash') },
+    ];
+  }
   const compare: MenuItem[] = expanded && expanded !== row.hash
     ? [{ label: `Compare with ${shortOf(expanded)}${state?.pro ? '' : ' (Pro)'}`, run: () => startCompare(row.hash) }, 'sep']
     : [];

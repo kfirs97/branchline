@@ -36,6 +36,13 @@ export interface FileChange {
   deletions?: number;
 }
 
+export interface Stash extends Commit {
+  /** e.g. "stash@{0}" */
+  selector: string;
+  /** The commit the stash was created on (its first parent). */
+  base: string;
+}
+
 export interface CommitDetails extends Commit {
   body: string;
   committer: string;
@@ -151,6 +158,16 @@ export class Git {
     return files;
   }
 
+  async stashes(): Promise<Stash[]> {
+    let out: string;
+    try {
+      out = await this.run(['stash', 'list', `--format=%H${FIELD}%P${FIELD}%gd${FIELD}%at${FIELD}%an${FIELD}%ae${FIELD}%s${RECORD}`]);
+    } catch {
+      return [];
+    }
+    return parseStashes(out);
+  }
+
   /** Whether git's commit-graph cache exists; without it, ordered logs of large repos are several times slower. */
   async hasCommitGraph(): Promise<boolean> {
     const out = await this.run(['rev-parse', '--git-path', 'objects/info/commit-graph', '--git-path', 'objects/info/commit-graphs']);
@@ -178,6 +195,18 @@ export function parseLog(out: string): Commit[] {
   return commits;
 }
 
+export function parseStashes(out: string): Stash[] {
+  const stashes: Stash[] = [];
+  for (const raw of out.split(RECORD)) {
+    const rec = raw.replace(/^\n/, '');
+    if (!rec) continue;
+    const [hash, parents, selector, date, author, email, subject] = rec.split(FIELD);
+    const ps = parents ? parents.split(' ') : [];
+    stashes.push({ hash, parents: ps.slice(0, 1), base: ps[0], selector, date: Number(date), author, email, subject: subject ?? '' });
+  }
+  return stashes;
+}
+
 export function parseRefs(out: string): Ref[] {
   const refs: Ref[] = [];
   for (const line of out.split('\n')) {
@@ -188,7 +217,6 @@ export function parseRefs(out: string): Ref[] {
     else if (full.startsWith('refs/remotes/')) {
       if (!full.endsWith('/HEAD')) refs.push({ type: 'remote', name: full.slice(13), hash });
     } else if (full.startsWith('refs/tags/')) refs.push({ type: 'tag', name: full.slice(10), hash });
-    else if (full === 'refs/stash') refs.push({ type: 'stash', name: 'stash', hash });
   }
   return refs;
 }

@@ -13,6 +13,8 @@ export interface Row {
   subject: string;
   refs: Ref[];
   layout: RowLayout;
+  /** Set for stash rows, e.g. "stash@{0}". */
+  stash?: string;
 }
 
 export interface ViewState {
@@ -45,7 +47,8 @@ export type ToWebview =
 
 export type CommitAction =
   | 'checkout' | 'createBranch' | 'createTag' | 'cherryPick' | 'revert'
-  | 'resetSoft' | 'resetMixed' | 'resetHard' | 'copyHash' | 'copySubject';
+  | 'resetSoft' | 'resetMixed' | 'resetHard' | 'copyHash' | 'copySubject'
+  | 'stashApply' | 'stashPop' | 'stashDrop' | 'stashBranch';
 
 export type RefAction =
   | 'checkout' | 'merge' | 'rebase' | 'rename' | 'delete' | 'push' | 'copyName';
@@ -63,5 +66,5 @@ export type FromWebview =
   | { type: 'clearPath' }
   | { type: 'getPro' }
   | { type: 'openFile'; path: string }
-  | { type: 'commitAction'; action: CommitAction; hash: string; subject: string }
+  | { type: 'commitAction'; action: CommitAction; hash: string; subject: string; stash?: string }
   | { type: 'refAction'; action: RefAction; ref: Ref };

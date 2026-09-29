@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { randomBytes } from 'node:crypto';
-import { Git, GitError, Ref, RepoState } from './git';
+import { Git, GitError, Ref, RepoState, Stash } from './git';
 import { GraphLayout } from './graph';
 import { FromWebview, Row, ToWebview, ViewState, WORKING_TREE } from './protocol';
 import { runCommitAction, runRefAction } from './actions';
@@ -18,6 +18,8 @@ export class GraphPanel {
   private allRefs = true;
   private search = '';
   private path: string | null = null;
+  /** Stashes not yet shown because their base commit hasn't been loaded. */
+  private pendingStashes: Stash[] = [];
   private loadSeq = 0;
   /** Identity of the loaded refs/HEAD/working-tree state, to skip reloads when nothing relevant changed. */
   private fingerprint = '';
@@ -143,7 +145,7 @@ export class GraphPanel {
         if (this.git) await vscode.window.showTextDocument(vscode.Uri.joinPath(vscode.Uri.file(this.git.cwd), m.path));
         return;
       case 'commitAction':
-        if (this.git && (await runCommitAction(this.git, m.action, m.hash, m.subject))) await this.load(true);
+        if (this.git && (await runCommitAction(this.git, m.action, m.hash, m.subject, m.stash))) await this.load(true);
         return;
       case 'refAction':
         if (this.git && this.repoState && (await runRefAction(this.git, m.action, m.ref, this.repoState))) await this.load(true);
@@ -183,9 +185,10 @@ export class GraphPanel {
     const count = reset ? Math.max(pageSize, dropLoaded ? 0 : this.loaded) : pageSize;
     const skip = reset ? 0 : this.loaded;
     const started = Date.now();
-    const [state, commits] = await Promise.all([
+    const [state, commits, stashes] = await Promise.all([
       git.state(),
       git.log({ skip, count: count + 1, allRefs: this.allRefs, search: this.search || undefined, path: this.path ?? undefined }),
+      reset && this.allRefs && !this.search && !this.path ? git.stashes() : Promise.resolve(null),
     ]);
     if (seq !== this.loadSeq) return; // a newer load superseded this one
     if (reset && commits.length > count) void this.offerSpeedup(git, Date.now() - started);
@@ -195,6 +198,7 @@ export class GraphPanel {
     if (reset) {
       this.layout = new GraphLayout();
       this.loaded = 0;
+      this.pendingStashes = stashes ?? [];
     }
     this.repoState = state;
 
@@ -214,6 +218,11 @@ export class GraphPanel {
       });
     }
     for (const c of commits) {
+      // Stashes sit directly above the commit they were made on.
+      for (const st of this.pendingStashes.filter(p => p.base === c.hash)) {
+        rows.push({ ...st, refs: [], stash: st.selector, layout: this.layout.add(st) });
+      }
+      this.pendingStashes = this.pendingStashes.filter(p => p.base !== c.hash);
       // While searching, rows are not contiguous history, so draw them unconnected.
       const layout = this.search ? { col: 0, color: 0, segments: [], width: 1 } : this.layout.add(c);
       rows.push({ ...c, refs: refsByHash.get(c.hash) ?? [], layout });

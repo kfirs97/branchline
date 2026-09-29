@@ -67,4 +67,7 @@ git checkout -q -b feature/search
 c "$C" $CE "Add full-text search index" src/search.ts
 git checkout -q main
 c "$A" $AE "Cache compiled templates" src/app.ts
+git checkout -q main
+echo "retry tweak" >> src/app.ts
+GIT_AUTHOR_NAME="Maya Chen" GIT_AUTHOR_EMAIL=maya@example.dev GIT_COMMITTER_NAME="Maya Chen" GIT_COMMITTER_EMAIL=maya@example.dev git stash push -q -m "try smaller cache size"
 echo "wip" >> src/app.ts

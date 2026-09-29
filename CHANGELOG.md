@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+- Stashes appear in the graph above the commit they were made on, with Apply, Pop, Drop and Create Branch actions
+
 ## 0.1.2
 
 - Store listing: git history keywords, links to all Branchline extensions

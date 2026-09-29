@@ -32,7 +32,7 @@ const THEMES: Record<string, Record<string, string>> = {
 
 (async () => {
   const git = new Git(resolve(repo));
-  const [state, commits] = await Promise.all([git.state(), git.log({ skip: 0, count: 120, allRefs: true, path: path || undefined })]);
+  const [state, commits, stashes] = await Promise.all([git.state(), git.log({ skip: 0, count: 120, allRefs: true, path: path || undefined }), git.stashes()]);
   const byHash = new Map<string, Ref[]>();
   for (const r of state.refs) byHash.set(r.hash, [...(byHash.get(r.hash) ?? []), r]);
   const layout = new GraphLayout();
@@ -40,7 +40,10 @@ const THEMES: Record<string, Record<string, string>> = {
   if (state.dirty && state.head) {
     rows.push({ hash: '*', parents: [state.head], author: '', email: '', date: Date.now() / 1000, subject: `Uncommitted changes (${state.dirty})`, refs: [], layout: layout.add({ hash: '*', parents: [state.head] }) });
   }
-  for (const c of commits) rows.push({ ...c, refs: byHash.get(c.hash) ?? [], layout: layout.add(c) });
+  for (const c of commits) {
+    for (const st of stashes.filter(x => x.base === c.hash)) rows.push({ ...st, refs: [], stash: st.selector, layout: layout.add(st) });
+    rows.push({ ...c, refs: byHash.get(c.hash) ?? [], layout: layout.add(c) });
+  }
   const expandHash = expand ? rows[Number(expand)].hash : null;
   const details = expandHash ? await git.details(expandHash) : null;
   const compareHash = compare ? rows[Number(compare)].hash : null;

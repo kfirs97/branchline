@@ -11,6 +11,7 @@ Fast, keyboard-friendly, theme-aware, and **actively maintained**.
 - **Commit graph** — every branch, merge, tag and remote in one view, with stable lanes and colors.
 - **Commit details inline** — click a commit to see its message, author, parents and changed files with `+/−` stats. Click a file to open the diff.
 - **Uncommitted changes** — your working tree appears at the top of the graph; click it to review what you've changed.
+- **Stashes** — shown in the graph above the commit they were made on; apply, pop, drop or turn one into a branch.
 - **Git actions from the graph** — right-click a commit or a branch/tag badge:
   - checkout, create branch, create tag
   - merge (fast-forward, `--no-ff`, or squash), rebase

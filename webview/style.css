@@ -105,6 +105,7 @@ svg { display: block; overflow: visible; }
 .node { stroke: var(--vscode-editor-background); stroke-width: 1.5; }
 .node.merge { r: 3.5; }
 .node.head { stroke: var(--vscode-foreground); stroke-width: 2; }
+.node.stash { stroke: var(--vscode-editor-background); stroke-width: 1.5; }
 .node.wt { fill: var(--vscode-editor-background); stroke: var(--lane-9); stroke-width: 2; stroke-dasharray: 2 2; }
 .c0 { stroke: var(--lane-0); } .node.c0 { fill: var(--lane-0); }
 .c1 { stroke: var(--lane-1); } .node.c1 { fill: var(--lane-1); }

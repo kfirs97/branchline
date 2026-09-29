@@ -34,9 +34,21 @@ async function exec(git: Git, args: string[], title: string): Promise<boolean> {
   }
 }
 
-export async function runCommitAction(git: Git, action: CommitAction, hash: string, subject: string): Promise<boolean> {
+export async function runCommitAction(git: Git, action: CommitAction, hash: string, subject: string, stash?: string): Promise<boolean> {
   const short = hash.slice(0, 7);
   switch (action) {
+    case 'stashApply':
+      return exec(git, ['stash', 'apply', stash!], `Apply ${stash}`);
+    case 'stashPop':
+      return exec(git, ['stash', 'pop', stash!], `Pop ${stash}`);
+    case 'stashDrop':
+      if (!(await confirm(`Drop ${stash}?`, `${subject}\n\nThe stashed changes will be permanently deleted.`, 'Drop'))) return false;
+      return exec(git, ['stash', 'drop', stash!], `Drop ${stash}`);
+    case 'stashBranch': {
+      const name = await vscode.window.showInputBox({ title: `Create branch from ${stash}`, prompt: 'Branch name', validateInput: validRefName(git) });
+      if (!name) return false;
+      return exec(git, ['stash', 'branch', name, stash!], `Branch from ${stash}`);
+    }
     case 'copyHash':
       await vscode.env.clipboard.writeText(hash);
       return false;

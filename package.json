@@ -2,7 +2,7 @@
   "name": "branchline",
   "displayName": "Branchline \u2014 Git Graph",
   "description": "A fast, actively maintained Git Graph and Git History for VS Code: visualize branches, browse history, compare commits and run git actions right from the graph.",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "publisher": "branchline",
   "license": "SEE LICENSE IN LICENSE",
   "engines": {

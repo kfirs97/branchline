@@ -98,6 +98,19 @@ test('working tree changes include renames and untracked files', async () => {
   ]);
 });
 
+test('lists stashes with their base commit', async () => {
+  const head = (await git.run(['rev-parse', 'HEAD'])).trim();
+  await git.run(['stash', 'push', '-q', '-m', 'wip: experiment']);
+  const stashes = await git.stashes();
+  assert.equal(stashes.length, 1);
+  assert.equal(stashes[0].selector, 'stash@{0}');
+  assert.equal(stashes[0].base, head);
+  assert.deepEqual(stashes[0].parents, [head], 'only the base parent is kept for the graph');
+  assert.match(stashes[0].subject, /wip: experiment/);
+  assert.ok(!(await git.state()).refs.some(r => r.type === 'stash'), 'stash is shown as a row, not a ref badge');
+  await git.run(['stash', 'pop', '-q']);
+});
+
 test('parsers handle rename records', () => {
   assert.deepEqual(parseNameStatus('R100\0old name.txt\0new name.txt\0M\0b.txt\0'), [
     { status: 'R', oldPath: 'old name.txt', path: 'new name.txt' },
