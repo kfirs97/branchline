@@ -4,6 +4,7 @@ import { RevisionContentProvider, SCHEME } from './content';
 import { Git } from './git';
 import { License } from './license';
 import { BUY_URL } from './licenseVerify';
+import { recordGraphOpen } from './nudge';
 
 /** The subset of the built-in git extension's API (vscode.git, API v1) that we use. */
 interface BuiltinGitApi {
@@ -65,7 +66,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     status,
     { dispose: () => clearTimeout(timer) },
     vscode.workspace.registerTextDocumentContentProvider(SCHEME, new RevisionContentProvider()),
-    vscode.commands.registerCommand('branchline.show', () => void GraphPanel.show(context, repos, license)),
+    vscode.commands.registerCommand('branchline.show', () => {
+      GraphPanel.show(context, repos, license);
+      void recordGraphOpen(context, license);
+    }),
     vscode.commands.registerCommand('branchline.fileHistory', async (uri?: vscode.Uri) => {
       const target = uri ?? vscode.window.activeTextEditor?.document.uri;
       if (target?.scheme !== 'file') return void vscode.window.showWarningMessage('Open or select a file to see its history.');
