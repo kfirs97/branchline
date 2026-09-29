@@ -67,7 +67,7 @@ Branchline uses the git executable configured in `git.path`.
 
 - **[TODO Lens — Better Comments & TODO Tree](https://marketplace.visualstudio.com/items?itemName=branchline.todo-lens)** — color-coded comments and every TODO in your workspace in one tree.
 - **[Snapline — Code Screenshots](https://marketplace.visualstudio.com/items?itemName=branchline.snapline-code-screenshots)** — beautiful code images in your editor's theme, in one click.
-- **[Docline — Python Docstring Generator](https://marketplace.visualstudio.com/items?itemName=branchline.docline-python-docstring-generator)** — type `"""` and get Google/NumPy/Sphinx docstrings.
+- **[Docline — Instant Python Docstrings](https://marketplace.visualstudio.com/items?itemName=branchline.docline-python-docstring-generator)** — type `"""` and get Google/NumPy/Sphinx docstrings.
 
 ## Support
 
