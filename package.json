@@ -126,7 +126,8 @@
     "test": "node esbuild.mjs --tests && node --test dist-test/*.test.js",
     "package": "node esbuild.mjs --production && vsce package --no-dependencies",
     "e2e": "node esbuild.mjs && esbuild e2e/run.ts e2e/suite.ts --bundle --platform=node --format=cjs --external:vscode --external:@vscode/test-electron --outdir=dist-test/e2e --log-level=warning && node dist-test/e2e/run.js",
-    "preview": "node esbuild.mjs && esbuild tools/preview.ts --bundle --platform=node --outfile=dist-test/preview.js --log-level=warning && node dist-test/preview.js"
+    "preview": "node esbuild.mjs && esbuild tools/preview.ts --bundle --platform=node --outfile=dist-test/preview.js --log-level=warning && node dist-test/preview.js",
+    "publish:ovsx": "ovsx publish *.vsix -p $OVSX_PAT"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
@@ -134,6 +135,7 @@
     "@vscode/test-electron": "^3.1.0",
     "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
+    "ovsx": "^1.2.0",
     "typescript": "^5.9.3"
   },
   "repository": {
