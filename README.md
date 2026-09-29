@@ -26,7 +26,7 @@ Fast, keyboard-friendly, theme-aware, and **actively maintained**.
 
 ## Branchline Pro
 
-Pro is a **one-time purchase** — no subscription — that unlocks power features and funds ongoing development:
+Pro is a **one-time purchase** — no subscription — that unlocks power features and funds ongoing development. The same license also unlocks Pro in [TODO Lens](https://marketplace.visualstudio.com/items?itemName=branchline.todo-lens).
 
 - **Compare any two commits** — click a commit, then ⌘/Ctrl-click another to see every file that differs between them, and open side-by-side diffs.
 - **File history** — right-click any file (in the Explorer or editor) → *Show File History in Git Graph* to see only the commits that touched it, still drawn as a connected graph.
@@ -61,6 +61,10 @@ Get Pro with the **★ Pro** button in the graph toolbar or the `Branchline: Get
 | `branchline.showStatusBarItem` | `true` | Show the Git Graph button in the status bar |
 
 Branchline uses the git executable configured in `git.path`.
+
+## Also by the author
+
+**[TODO Lens — Better Comments & TODO Tree](https://marketplace.visualstudio.com/items?itemName=branchline.todo-lens)** — color-coded comments and every TODO in your workspace in one tree. Your Branchline Pro license unlocks TODO Lens Pro too.
 
 ## Feedback
 
