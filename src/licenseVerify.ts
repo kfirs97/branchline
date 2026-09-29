@@ -1,7 +1,7 @@
 /** Gumroad license verification. Kept free of the vscode API so it can be unit tested. */
 
-/** Gumroad product that sells Branchline Pro licenses. Filled in once the product exists. */
-export const GUMROAD_PRODUCT_ID = '';
+/** Gumroad product that sells Branchline Pro licenses (dealership6.gumroad.com/l/branchline-pro). */
+export const GUMROAD_PRODUCT_ID = 'J5wcB2F0WJjaIy434QRECg==';
 export const BUY_URL = 'https://dealership6.gumroad.com/l/branchline-pro';
 
 export type VerifyResult = { ok: true } | { ok: false; reason: string; network?: boolean };
