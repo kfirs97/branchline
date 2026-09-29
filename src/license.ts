@@ -73,7 +73,7 @@ export class License {
     if (this.pro) return true;
     const pick = await vscode.window.showInformationMessage(
       `${feature} is a Branchline Pro feature.`,
-      { detail: 'Branchline Pro is a one-time purchase. One license unlocks Pro in both Branchline and TODO Lens.', modal: true },
+      { detail: 'Branchline Pro is a one-time purchase. One license unlocks Pro in all Branchline extensions: Branchline, TODO Lens, Snapline and Docline.', modal: true },
       'Get Pro',
       'Enter License Key',
     );

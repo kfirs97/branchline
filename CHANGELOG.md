@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- Store listing: git history keywords, links to all Branchline extensions
+- Sponsor button on the extension page
+
 ## 0.1.1
 
 - Large repositories: offer to build git's commit-graph cache when history loads slowly (up to 8× faster)
