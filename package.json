@@ -149,5 +149,8 @@
   "galleryBanner": {
     "color": "#141a24",
     "theme": "dark"
+  },
+  "sponsor": {
+    "url": "https://dealership6.gumroad.com/l/support"
   }
 }

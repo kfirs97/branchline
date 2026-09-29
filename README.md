@@ -66,6 +66,10 @@ Branchline uses the git executable configured in `git.path`.
 
 **[TODO Lens — Better Comments & TODO Tree](https://marketplace.visualstudio.com/items?itemName=branchline.todo-lens)** — color-coded comments and every TODO in your workspace in one tree. Your Branchline Pro license unlocks TODO Lens Pro too.
 
+## Support
+
+Free and maintained by one developer. If it saves you time, you can [chip in from $1](https://dealership6.gumroad.com/l/support) — or get Pro, which supports development too.
+
 ## Feedback
 
 Found a bug or have an idea? [Open an issue](https://github.com/kfirs97/branchline/issues). Reviews on the Marketplace help a lot, too.
