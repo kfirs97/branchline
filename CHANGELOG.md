@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+- Pro features are now free for your first 7 days (no signup). A single reminder appears when the trial ends.
+
 ## 0.1.3
 
 - Stashes appear in the graph above the commit they were made on, with Apply, Pop, Drop and Create Branch actions

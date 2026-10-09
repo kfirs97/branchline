@@ -27,6 +27,8 @@ Fast, keyboard-friendly, theme-aware, and **actively maintained**.
 
 ## Branchline Pro
 
+**Try it free:** every Pro feature is unlocked for your first 7 days — no signup, no card. After that, keep them with a one-time license.
+
 Pro is a **one-time purchase** — no subscription — that unlocks power features and funds ongoing development. The same license also unlocks Pro in [TODO Lens](https://marketplace.visualstudio.com/items?itemName=branchline.todo-lens).
 
 - **Compare any two commits** — click a commit, then ⌘/Ctrl-click another to see every file that differs between them, and open side-by-side diffs.

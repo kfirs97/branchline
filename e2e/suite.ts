@@ -13,6 +13,7 @@ export async function run(): Promise<void> {
 
   await vscode.commands.executeCommand('branchline.show');
   await sleep(1500);
+  for (let i = 0; i < 20 && !/^Git Graph: /.test(vscode.window.tabGroups.activeTabGroup.activeTab?.label ?? ''); i++) await sleep(500);
   const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
   assert.ok(tab?.input instanceof vscode.TabInputWebview, 'graph panel is the active tab');
   assert.match(tab.label, /^Git Graph: branchline-e2e-/);

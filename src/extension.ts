@@ -25,7 +25,12 @@ async function builtinGit(): Promise<BuiltinGitApi | undefined> {
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const api = await builtinGit();
-  const license = new License(context);
+  const license = new License(context, {
+    product: 'Branchline',
+    features: 'comparing any two commits and file history',
+    howTo: 'Try it: ⌘/Ctrl-click a second commit in the graph, or right-click a file → Show File History in Git Graph.',
+  });
+  context.subscriptions.push(license);
   await license.init();
 
   const repos = async (): Promise<string[]> => {
